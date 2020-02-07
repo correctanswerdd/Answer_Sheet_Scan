@@ -4,6 +4,7 @@ import json
 import math
 import os
 import pickle
+import xlrd
 from progressbar import *
 
 template_json_dir = "data/template.json"
@@ -50,11 +51,33 @@ def get_template_rec(opt_list: list):
            (math.ceil(opt7_high), math.ceil(opt7_width), 3)
 
 
+def search_row(file: str, worksheet):
+    n_row = worksheet.nrows
+    low = 0
+    high = n_row
+    while low <= high:
+        mid = int((low + high) / 2)
+        if worksheet.cell_value(mid, 4) == file[0:11]:
+            return worksheet.cell_value(mid, 5).split(',')
+        elif worksheet.cell_value(mid, 4) < file[0:11]:
+            low = mid + 1
+        else:
+            high = mid - 1
+    # for i in range(n_row):
+    #     if worksheet.cell_value(i, 4) == file[0:11]:
+    #         return worksheet.cell_value(i, 5).split(',')
+
+
 def get_options(opt_list: list, rec3: tuple, rec4: tuple, rec7: tuple, user_dir: str):
     opt3 = []
     opt4 = []
     opt7 = []
+    opt3_y = []
+    opt4_y = []
+    opt7_y = []
 
+    workbook = xlrd.open_workbook("data/workbook.xls")
+    worksheet = workbook.sheet_by_index(0)
     # 遍历路径下所有用户图像
     for root, dirs, files in os.walk(user_dir, topdown=False):
         progress = ProgressBar(len(files) - 1)
@@ -62,56 +85,68 @@ def get_options(opt_list: list, rec3: tuple, rec4: tuple, rec7: tuple, user_dir:
         n = 0
         for i in files:
             img = cv2.imread(root + "/" + i)
+            opt_values = search_row(i, worksheet)
             # 对每一张图像，裁剪出所有区域
+            k = 0
             for opt in opt_list:
                 if len(opt) == 3:
                     crop = np.zeros(rec3)
                     high, width, channel = rec3
                     # crop = img[opt[0][1]:opt[0][1] + high][opt[0][0]:opt[0][0] + width]  numpy提取某几行某几列的错误写法……
                     crop = img[opt[0][1]:opt[0][1] + high][:, opt[0][0]:opt[0][0] + width]
-                    # cv2.imshow("image", crop)
-                    # cv2.waitKey(0)
-                    opt3.append(crop)
+                    # cv2.imwrite("3.jpg", crop)
+                    if opt_values[k] != '*':
+                        opt3.append(crop)
+                        opt3_y.append(opt_values[k])
                 elif len(opt) == 4:
                     crop = np.zeros(rec4)
                     high, width, channel = rec4
                     crop = img[opt[0][1]:opt[0][1] + high][:, opt[0][0]:opt[0][0] + width]
                     # cv2.imshow("image", crop)
-                    # cv2.waitKey(0)
-                    opt4.append(crop)
+                    if opt_values[k] != '*':
+                        opt4.append(crop)
+                        opt4_y.append(opt_values[k])
                 elif len(opt) == 7:
                     crop = np.zeros(rec7)
                     high, width, channel = rec7
                     crop = img[opt[0][1]:opt[0][1] + high][:, opt[0][0]:opt[0][0] + width]
                     # cv2.imshow("image", crop)
-                    # cv2.waitKey(0)
-                    opt7.append(crop)
+                    if opt_values[k] != '*':
+                        opt7.append(crop)
+                        opt7_y.append(opt_values[k])
+                k += 1
             n += 1
             progress.show_progress(n)
         progress.end()
-    return np.array(opt3), np.array(opt4), np.array(opt7)
+    return np.array(opt3), np.array(opt4), np.array(opt7), opt3_y, opt4_y, opt7_y
 
 
-def save_options(opt3:np.array, opt4: np.array, opt7: np.array):
+def save_options(opt3:np.array, opt4: np.array, opt7: np.array, opt3_y: list, opt4_y: list, opt7_y: list):
     with open("options_three.pkl", "wb") as f:
         pickle.dump(opt3, f)
     with open("options_four.pkl", "wb") as f:
         pickle.dump(opt4, f)
     with open("options_seven.pkl", "wb") as f:
         pickle.dump(opt7, f)
+    with open("options_three_y.pkl", "wb") as f:
+        pickle.dump(opt3_y, f)
+    with open("options_four_y.pkl", "wb") as f:
+        pickle.dump(opt4_y, f)
+    with open("options_seven_y.pkl", "wb") as f:
+        pickle.dump(opt7_y, f)
 
 
 # 获取每一题的所有选项位置
 option_list = load_data(template_json_dir)
-
-# 计算x选题的平均标准画布
+#
+# # 计算x选题的平均标准画布
 rec3, rec4, rec7 = get_template_rec(option_list)
 
 # 得到options的list
-opt3, opt4, opt7 = get_options(option_list, rec3, rec4, rec7, userimg_png_dir)
+opt3, opt4, opt7, opt3_y, opt4_y, opt7_y = get_options(option_list, rec3, rec4, rec7, userimg_png_dir)
 
 # 存储
-save_options(opt3, opt4, opt7)
+save_options(opt3, opt4, opt7, opt3_y, opt4_y, opt7_y)
 
 
 
