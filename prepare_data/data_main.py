@@ -43,8 +43,8 @@ def get_template_rec(opt_list: list):
             opt4_width = (opt4_width * opt4 + opt[3][2] - opt[0][0]) / (opt4 + 1)
             opt4 += 1
         elif len(opt) == 7:
-            opt7_high = (opt7_high * opt7 + opt[5][3] - opt[0][1]) / (opt7 + 1)
-            opt7_width = (opt7_width * opt7 + opt[5][2] - opt[0][0]) / (opt7 + 1)
+            opt7_high = (opt7_high * opt7 + opt[6][3] - opt[0][1]) / (opt7 + 1)
+            opt7_width = (opt7_width * opt7 + opt[6][2] - opt[0][0]) / (opt7 + 1)
             opt7 += 1
     return (math.ceil(opt3_high), math.ceil(opt3_width), 3), \
            (math.ceil(opt4_high), math.ceil(opt4_width), 3), \
